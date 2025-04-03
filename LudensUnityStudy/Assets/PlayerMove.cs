@@ -68,11 +68,38 @@ public class PlayerMove : MonoBehaviour
     }
 
     void OnCollisionEnter2D(Collision2D collision)
-    {
-            
+    {       
         animator.SetBool("isJumping", false);
         Isjumping = false;
 
+        if(collision.gameObject.tag == "Enemy") // 부딪힌 오브젝트의 태그가 "Enemy"인지 확인
+        {
+            OnDamaged(collision.transform.position); // 적의 위치를 OnDamaged함수에 담아 전달하고 함수 실행
+        }
+    }
+
+    void OnDamaged(Vector2 targetPos)
+    {
+        // Change Layer (Immortal Active)
+        gameObject.layer = LayerMask.NameToLayer("PlayerDamaged"); // gameObject.layer = 9;
+
+        //View Alpha
+        spriteRenderer.color = new Color(1, 1, 1, 0.4f); // 스프라이트의 투명도를 0.4로 설정
+
+        //적이 왼쪽에 있으면 오른쪽으로, 적이 오른쪽에 있으면 왼쪽으로 튕겨 나가도록 방향 계산
+        int dirc = transform.position.x - targetPos.x > 0 ? 1 : -1; 
+        rigid.AddForce(new Vector2(dirc, 1) * 5, ForceMode2D.Impulse);
+
+        //Animation
+        animator.SetTrigger("doDamaged");
+
+        Invoke("OffDamaged", 3); // 3초 뒤에 OffDamaged() 함수를 호출시킴
+    }
+
+    void OffDamaged()
+    {
+        gameObject.layer = LayerMask.NameToLayer("Player"); // 레이어를 다시 Player로 전환
+        spriteRenderer.color = new Color(1, 1, 1, 1); // 스프라이트의 투명도를 1로 설정
     }
 }
 
