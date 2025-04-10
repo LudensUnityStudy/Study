@@ -5,13 +5,14 @@ using UnityEngine;
 
 public class PlayerMove : MonoBehaviour
 {
-
+    public GameManager gameManager;
     public float maxSpeed;
     public float jumpPower;
     public bool Isjumping = false;
     Rigidbody2D rigid;
     SpriteRenderer spriteRenderer;
     Animator animator;
+    CapsuleCollider2D capsuleCollider;
 
     // Start is called before the first frame update
     void Awake()
@@ -19,6 +20,7 @@ public class PlayerMove : MonoBehaviour
         rigid = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
+        capsuleCollider = GetComponent<CapsuleCollider2D>();
     }
 
     // Update is called once per frame
@@ -34,7 +36,7 @@ public class PlayerMove : MonoBehaviour
         }
             
 
-        if (Input.GetButton("Horizontal"))
+        if (Input.GetButton("Horizontal")) // 사실 GetButton은 지양하는 것이 좋음. 그외의 지양해야할 것들? -> 노션참고.(hkh)
         {
             spriteRenderer.flipX = Input.GetAxisRaw("Horizontal") == -1;
 
@@ -72,14 +74,29 @@ public class PlayerMove : MonoBehaviour
         animator.SetBool("isJumping", false);
         Isjumping = false;
 
-        if(collision.gameObject.tag == "Enemy") // 부딪힌 오브젝트의 태그가 "Enemy"인지 확인
+        if (collision.gameObject.tag == "Enemy") // 부딪힌 오브젝트의 태그가 "Enemy"인지 확인
+        { 
+            // Attack (New)
+            if (rigid.velocity.y < 0 && transform.position.y > collision.transform.position.y)
+            {
+                OnAttack(collision.transform);
+            }
+
+            // Damaged (기존)
+            else
+                OnDamaged(collision.transform.position); // 적의 위치를 OnDamaged함수에 담아 전달하고 함수 실행
+        }
+        else if (collision.gameObject.tag == "Spike")
         {
-            OnDamaged(collision.transform.position); // 적의 위치를 OnDamaged함수에 담아 전달하고 함수 실행
+            OnDamaged(collision.transform.position);
         }
     }
 
     void OnDamaged(Vector2 targetPos)
     {
+        // Heath Down
+        gameManager.HeathDown();
+
         // Change Layer (Immortal Active)
         gameObject.layer = LayerMask.NameToLayer("PlayerDamaged"); // gameObject.layer = 9;
 
@@ -101,6 +118,45 @@ public class PlayerMove : MonoBehaviour
         gameObject.layer = LayerMask.NameToLayer("Player"); // 레이어를 다시 Player로 전환
         spriteRenderer.color = new Color(1, 1, 1, 1); // 스프라이트의 투명도를 1로 설정
     }
+
+    void OnAttack(Transform enemy)
+    {
+        // Enemy Die
+        EnemyMove enemyMove = enemy.GetComponent<EnemyMove>();
+        enemyMove.OnDamaged();
+
+        // Point
+        gameManager.stagePoint += 100;
+
+        // Reaction Force
+        rigid.AddForce(Vector2.up * 5, ForceMode2D.Impulse);
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.gameObject.tag == "Finish")
+        {
+            gameManager.NextStage();
+        }
+    }
+
+public void OnDie()
+    {
+        // Sprite Alpha
+        spriteRenderer.color = new Color(1, 1, 1, 0.4f);
+        // Sprite Flip Y
+        spriteRenderer.flipY = true;
+        // Collider Disable
+        capsuleCollider.enabled = false;
+        // Die Effect Jump
+        rigid.AddForce(Vector2.up * 5, ForceMode2D.Impulse);
+    }
+
+    public void VelocityZero()
+    {
+        rigid.velocity = Vector2.zero;
+    }
+
 }
 
 

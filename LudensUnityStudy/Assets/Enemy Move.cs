@@ -8,6 +8,7 @@ public class EnemyMove : MonoBehaviour
     Rigidbody2D rigid; // Rigidbody2D 컴포넌트를 참조
     SpriteRenderer spriteRenderer;
     Animator animator;
+    CapsuleCollider2D capsuleCollider;
 
     public int nextMove; // 다음 움직임 방향 (-1: 왼쪽, 0: 정지, 1: 오른쪽)
 
@@ -16,6 +17,7 @@ public class EnemyMove : MonoBehaviour
         rigid = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
+        capsuleCollider = GetComponent<CapsuleCollider2D>();
 
         Invoke("Think", 5);
     }
@@ -47,5 +49,24 @@ public class EnemyMove : MonoBehaviour
 
         float nextThinkTime = Random.Range(2f, 5f);
         Invoke("Think", nextThinkTime); // 2 ~ 5초 후에 다시 Think() 호출 → 방향을 주기적으로 계속 바꿈
+    }
+
+    public void OnDamaged()
+    {
+        // Sprite Alpha
+        spriteRenderer.color = new Color(1, 1, 1, 0.4f);
+        // Sprite Flip Y
+        spriteRenderer.flipY = true;
+        // Collider Disable
+        capsuleCollider.enabled = false;
+        // Die Effect Jump
+        rigid.AddForce(Vector2.up * 5, ForceMode2D.Impulse);
+        // Destroy
+        Invoke("DeActive", 5);
+    }
+
+    void DeActive()
+    {
+        gameObject.SetActive(false);
     }
 } 
